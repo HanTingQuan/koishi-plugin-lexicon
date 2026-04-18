@@ -2,7 +2,7 @@ import type { Context } from 'koishi'
 import { Random, Schema } from 'koishi'
 import { dictionary, dictionaryAlias } from './data'
 
-export const name = 'dict'
+export const name = 'lexicon'
 
 export interface Config {
   interpolation: string

@@ -1,5 +1,5 @@
 {
-  "name": "koishi-plugin-dict",
+  "name": "koishi-plugin-lexicon",
   "version": "0.0.1",
   "description": "",
   "typings": "lib/index.d.ts",
