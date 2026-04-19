@@ -1,6 +1,8 @@
 import type { UnionToIntersection } from '../types'
 import { mapValues } from 'koishi'
+import 千字文 from './千字文.json'
 import pingshui from './平水韵.json'
+import 百家姓 from './百家姓.json'
 import standard from './通用规范汉字表.json'
 
 type Yindiao = keyof typeof pingshui
@@ -14,6 +16,10 @@ export const dictionary: Record<string, string | string[]> = {
   ...yindiaos, // 平声，上声，去声，入声
   ...yunbus, // 一东，二冬，三江，四支……
   ...standard,
+  天干: '甲乙丙丁戊己庚辛壬癸',
+  地支: '子丑寅卯辰巳午未申酉戌亥',
+  百家姓,
+  千字文,
 }
 
 export const dictionaryAlias = {
