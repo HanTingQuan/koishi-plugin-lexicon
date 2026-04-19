@@ -5,10 +5,9 @@ import pingshui from './data/平水韵.json'
 import 百家姓 from './data/百家姓.json'
 import standard from './data/通用规范汉字表.json'
 
-type Yindiao = keyof typeof pingshui
 type Yunbu = keyof UnionToIntersection<typeof pingshui[keyof typeof pingshui]>
 
-const yindiaos: Record<Yindiao, string> = mapValues(pingshui, value => Object.values(value).join(''))
+const yindiaos = mapValues(pingshui, value => Object.values(value).join(''))
 const yunbus: Record<Yunbu, string> = Object.assign({}, ...Object.values(pingshui))
 
 export class Lexicon {
