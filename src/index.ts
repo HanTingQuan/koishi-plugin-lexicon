@@ -114,6 +114,7 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
     .alias('别名')
+    .option('long', '-l 显示详细格式。')
     .option('separator', '-s <sep:string> 分隔符。')
     .example('`alias` 查询所有别名。')
     .example('`alias <src>` 查询src的别名。')
@@ -126,9 +127,12 @@ export function apply(ctx: Context, config: Config) {
       }
       if (src)
         return Lexicon.aliases[src] || `未知别名：${src}`
-      return Object.entries(Lexicon.aliases)
-        .map(([key, value]) => `${key}=${value}`)
-        .join(options?.separator || config.separator)
+      return options?.long
+        ? Object.entries(Lexicon.aliases)
+            .map(([key, value]) => `${key} → ${value}`)
+            .join('\n')
+        : Object.keys(Lexicon.aliases)
+            .join(options?.separator || config.separator)
     })
 
   ctx.command('echo <message:text>', '输出消息。')
