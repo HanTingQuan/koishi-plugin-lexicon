@@ -8,17 +8,21 @@ export const name = 'lexicon'
 export interface Config {
   separator: string
   interpPairs: string[]
+  customDictionary: Record<string, string[]>
   dictionaryAlias: Record<string, string>
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   interpPairs: Schema.tuple([Schema.string(), Schema.string()]).default(['【', '】']).description('插值前后缀。'),
+  customDictionary: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
   dictionaryAlias: Schema.dict(Schema.union(Object.keys(Lexicon.dictionary))).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {
   Object.assign(Lexicon.aliases, config.dictionaryAlias)
+  Lexicon.customs = config.customDictionary
+
   const interp = (key: string) => `${config.interpPairs[0]}${key}${config.interpPairs[1]}`
 
   const interpolation = new RegExp(interp('(.*?)'), 'g')
@@ -38,6 +42,31 @@ export function apply(ctx: Context, config: Config) {
         .join(options?.separator || config.separator))
     })
 
+  ctx.command('push [key:string] [...value:string]', '添加字典。')
+    .alias('append', '添加')
+    .example('`push <key> <value>` 添加value到key。')
+    .action(async ({ session }, key, ...value) => {
+      if (!session)
+        return
+
+      if (Lexicon.dictionary[key]) {
+        return `${interp(key)}是内置字典，无法更改。`
+      }
+
+      if (!config.customDictionary[key]) {
+        await session.send(`${interp(key)}不存在，创建新字典。`)
+        config.customDictionary[key] = []
+      }
+
+      if (config.customDictionary[key]) {
+        config.customDictionary[key].push(...(value))
+        ctx.scope.update(config)
+        return `添加成功：${value.join(' ')} → ${interp(key)}`
+      }
+
+      return `添加失败！`
+    })
+
   ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
     .alias('别名')
     .option('separator', '-s <sep:string> 分隔符。')
@@ -51,7 +80,7 @@ export function apply(ctx: Context, config: Config) {
         return `设置成功：${src} → ${dest}`
       }
       if (src)
-        return Lexicon.aliases[src]
+        return Lexicon.aliases[src] || `未知别名：${src}`
       return Object.entries(Lexicon.aliases)
         .map(([key, value]) => `${key} → ${value}`)
         .join(options?.separator || config.separator)
