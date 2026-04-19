@@ -32,6 +32,7 @@ export function apply(ctx: Context, config: Config) {
         return h('markdown', [
           ...Object.keys(Lexicon.dictionary),
           ...Object.keys(Lexicon.customs),
+          ...Object.keys(Lexicon.aliases),
         ]
           .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
