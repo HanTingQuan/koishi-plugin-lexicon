@@ -1,47 +1,30 @@
 import type { Context } from 'koishi'
 import { h, Random, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
-import { dictionary } from './data'
+import Lexicon from './lexicon'
 
 export const name = 'lexicon'
 
 export interface Config {
   separator: string
-  interpolation: string
+  interpPairs: string[]
+  dictionary: Record<string, string[]>
   dictionaryAlias: Record<string, string>
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
-  interpolation: Schema.string().default('【(.*?)】').description('插值正则表达式。'),
-  dictionary: Schema.dict(Schema.union([
-    Schema.string(),
-    Schema.array(Schema.string()),
-  ])).description('字典。'),
+  interpPairs: Schema.tuple([Schema.string(), Schema.string()]).default(['【', '】']).description('插值前后缀。'),
+  dictionary: Schema.dict(Schema.array(Schema.string())).description('字典。'),
   dictionaryAlias: Schema.dict(Schema.string()).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {
-  const interpolation = new RegExp(config.interpolation, 'g')
+  Object.assign(Lexicon.aliases, config.dictionaryAlias)
+  Object.assign(Lexicon.dictionary, config.dictionary)
+  const interp = (key: string) => `${config.interpPairs[0]}${key}${config.interpPairs[1]}`
 
-  function resolveInterpolation(raw: string, key = raw): string[] {
-    if (key.includes('|'))
-      return key.split('|')
-
-    if (key.includes('&')) {
-      return key.split('&')
-        .map(key => [...dictionary[key]])
-        .reduce((acc, arr) => {
-          const currSet = new Set(arr)
-          return acc.filter(item => currSet.has(item))
-        })
-    }
-
-    if (dictionary[key])
-      return [...dictionary[key]]
-
-    return [raw]
-  }
+  const interpolation = new RegExp(interp('(.*?)'), 'g')
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
@@ -50,11 +33,11 @@ export function apply(ctx: Context, config: Config) {
     .example('`lkup <key>` 查询key的字典。')
     .action(async ({ options }, key) => {
       if (!key) {
-        return h('markdown', Object.keys(dictionary)
-          .map(key => shortcut.input(`【${key}】`, key))
+        return h('markdown', Object.keys(Lexicon.dictionary)
+          .map(key => shortcut.input(interp(key), key))
           .join(options?.separator || config.separator))
       }
-      return h('markdown', resolveInterpolation(key)
+      return h('markdown', Lexicon.lookup(key)
         .join(options?.separator || config.separator))
     })
 
@@ -65,22 +48,32 @@ export function apply(ctx: Context, config: Config) {
     .example('`alias <src>` 查询src的别名。')
     .example('`alias <src> <dest>` 设置src的别名。')
     .action(async ({ options }, src, dest) => {
-      if (src && dest)
-        dictionary[src] = dictionary[dest]
+      if (src && dest) {
+        config.dictionaryAlias[src] = dest
+        ctx.scope.update(config)
+        return `设置成功：${src} → ${dest}`
+      }
       if (src)
-        return dictionary[src]
-      return Object.entries(dictionary)
-        .map(([key, value]) => `${key} -> ${value}`)
+        return Lexicon.aliases[src]
+      return Object.entries(Lexicon.aliases)
+        .map(([key, value]) => `${key} → ${value}`)
         .join(options?.separator || config.separator)
     })
 
   ctx.command('echo <message:text>', '输出消息。')
     .alias('填字')
-    .example('`echo 【平水韵】` 输出随机平水韵韵部。')
+    .example(`\`echo ${interp('平水韵')}\` 输出随机平水韵韵部。`)
     .action(async (_, message) => {
       return h('markdown', [
-        message.replaceAll(interpolation, (...match) =>
-          Random.pick(resolveInterpolation(match[0], match[1]))),
+        message.replaceAll(interpolation, (raw, key: string) => {
+          let match
+          if (match = key.match(/\*(\d+)$/)) {
+            const count = Number.parseInt(match[1], 10)
+            key = key.slice(0, -match[0].length)
+            return Random.pick(Lexicon.lookup(raw, key), count).join('')
+          }
+          return Random.pick(Lexicon.lookup(raw, key))
+        }),
         `> 👉 ${shortcut.input(`echo ${message}`, '再来一次')}`,
       ].join('\n'))
     })
