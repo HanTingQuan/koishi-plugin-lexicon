@@ -38,8 +38,7 @@ export function apply(ctx: Context, config: Config) {
           .map(key => shortcut.input(interp(key), key))
           .join(options?.separator || config.separator))
       }
-      return h('markdown', Lexicon.lookup(key)
-        .join(options?.separator || config.separator))
+      return Lexicon.lookup(key).join(options?.separator || config.separator)
     })
 
   ctx.command('push [key:string] [...values:string]', '添加字典值。')
