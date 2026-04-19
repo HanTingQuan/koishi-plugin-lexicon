@@ -1,27 +1,24 @@
 import type { Context } from 'koishi'
 import { h, Random, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
-import Lexicon from './lexicon'
+import Lexicon from './data'
 
 export const name = 'lexicon'
 
 export interface Config {
   separator: string
   interpPairs: string[]
-  dictionary: Record<string, string[]>
   dictionaryAlias: Record<string, string>
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   interpPairs: Schema.tuple([Schema.string(), Schema.string()]).default(['【', '】']).description('插值前后缀。'),
-  dictionary: Schema.dict(Schema.array(Schema.string())).description('字典。'),
-  dictionaryAlias: Schema.dict(Schema.string()).description('字典别名。'),
+  dictionaryAlias: Schema.dict(Schema.union(Object.keys(Lexicon.dictionary))).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {
   Object.assign(Lexicon.aliases, config.dictionaryAlias)
-  Object.assign(Lexicon.dictionary, config.dictionary)
   const interp = (key: string) => `${config.interpPairs[0]}${key}${config.interpPairs[1]}`
 
   const interpolation = new RegExp(interp('(.*?)'), 'g')
