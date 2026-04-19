@@ -7,11 +7,36 @@ export class Lexicon {
     public customs: Record<string, string[]> = {},
   ) {}
 
-  operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
-    '|': undefined as any,
-    '+': (a: string[], b: string[]) => [...a, ...b],
-    '-': (a: string[], b: string[]) => a.filter(item => !b.includes(item)),
-    '&': (a: string[], b: string[]) => a.filter(item => b.includes(item)),
+  find(value: string, sep = '=', weak = '*'): string[] {
+    const result = []
+    for (const key in this.dictionary) {
+      const array = Array.from(this.dictionary[key])
+      if (array.includes(value))
+        result.push(key)
+      else if (array.join().includes(value))
+        result.push(weak + key)
+    }
+    for (const key in this.customs) {
+      if (this.customs[key].includes(value))
+        result.push(key)
+      else if (this.customs[key].join().includes(value))
+        result.push(weak + key)
+    }
+    for (const key in this.aliases) {
+      const index: number = result.findIndex(
+        item => item.replace(weak, '').split(sep).includes(this.aliases[key]),
+      )
+      if (index !== -1) {
+        result[index] = key + sep + result[index]
+        continue
+      }
+      const array = this.lookup(key)
+      if (array.includes(value))
+        result.push(key)
+      else if (array.join().includes(value))
+        result.push(weak + key)
+    }
+    return result
   }
 
   resolve(string: string): string {
@@ -58,13 +83,14 @@ export class Lexicon {
       count = Number.parseInt(match[1], 10)
       key = key.slice(0, -match[0].length)
     }
-    // 注意：这里的 lookup 接收的是解析后的纯 key（不再需要 raw 参数）
-    const candidates = this.lookup(key)
-    if (!candidates || candidates.length === 0)
-      return ''
-    if (count === 1)
-      return Random.pick(candidates)
-    return Random.pick(candidates, count).join('')
+    return Random.pick(this.lookup(key), count).join('')
+  }
+
+  operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
+    '|': undefined as any,
+    '+': (a: string[], b: string[]) => [...a, ...b],
+    '-': (a: string[], b: string[]) => a.filter(item => !b.includes(item)),
+    '&': (a: string[], b: string[]) => a.filter(item => b.includes(item)),
   }
 
   lookup(raw: string, key = raw): string[] {

@@ -27,7 +27,7 @@ export function apply(ctx: Context, config: Config) {
     .option('separator', '-s <sep:string> 分隔符。')
     .example('`lkup` 查询所有字典目录。')
     .example('`lkup <key>` 查询key的字典。')
-    .action(async ({ options }, key) => {
+    .action(({ options }, key) => {
       if (!key) {
         return h('markdown', [
           ...Object.keys(Lexicon.dictionary),
@@ -46,7 +46,7 @@ export function apply(ctx: Context, config: Config) {
     .example('`alias` 查询所有别名。')
     .example('`alias <src>` 查询src的别名。')
     .example('`alias <src> <dest>` 设置src的别名。')
-    .action(async ({ options }, src, dest) => {
+    .action(({ options }, src, dest) => {
       if (src && dest) {
         config.dictionaryAlias[src] = dest
         ctx.scope.update(config)
@@ -132,11 +132,33 @@ export function apply(ctx: Context, config: Config) {
       return void ctx.scope.update(config)
     })
 
+  ctx.command('find <...values:string>', '查找字典值。')
+    .alias('查找')
+    .option('separator', '-s <sep:string> 分隔符。')
+    .example('`find <value>` 查找value的所在字典。')
+    .action(({ options }, ...values) => {
+      const sep = options?.separator || config.separator
+      const result: string[] = []
+      for (const value of values) {
+        const keys = Lexicon.find(value)
+        if (keys.length) {
+          result.push(`${value} 所在字典：${keys.map(key => key[0] === '*'
+            ? `*${shortcut.input(key.slice(1).split('=')[0], key.slice(1))}*`
+            : shortcut.input(key.split('=')[0], key),
+          ).join(sep)}`)
+        }
+        else {
+          result.push(`${value} 未找到。`)
+        }
+      }
+      return h('markdown', result.join('\n') || '未找到任何值。')
+    })
+
   ctx.command('echo <message:text>', '输出消息。')
     .alias('填字', { options: { tips: true } })
     .option('tips', '显示贴士。')
     .example(`\`echo %(平水韵)\` 输出随机平水韵韵部。`)
-    .action(async ({ options }, message) => {
+    .action(({ options }, message) => {
       return h('markdown', [
         Lexicon.resolve(message),
         options?.tips && `> 👉 ${shortcut.input(`填字 ${message}`, '再来一次')}`,
