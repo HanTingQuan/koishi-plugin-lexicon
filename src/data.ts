@@ -12,12 +12,10 @@ function makeAlias(dict: Record<string, any>, f: (key: string) => string) {
 
 type Yunbu = keyof UnionToIntersection<typeof pingshui[keyof typeof pingshui]>
 
-const yindiaos = mapValues(pingshui, value => Object.values(value).join(''))
 const yunbus: Record<Yunbu, string> = Object.assign({}, ...Object.values(pingshui))
 
 export default new Lexicon({
   平水韵: Object.keys(yunbus),
-  ...yindiaos, // 平声，上声，去声，入声
   ...yunbus, // 一东，二冬，三江，四支……
   ...standard,
   天干: '甲乙丙丁戊己庚辛壬癸',
@@ -25,7 +23,8 @@ export default new Lexicon({
   百家姓,
   千字文,
 }, {
-  ...makeAlias(yindiaos, key => key[0]),
+  ...mapValues(pingshui, dict => Object.keys(dict).join('+')),
   ...makeAlias(yunbus, key => key[key.length - 1]),
   ...makeAlias(standard, key => key[0]),
+  通规: Object.keys(standard).join('+'),
 })

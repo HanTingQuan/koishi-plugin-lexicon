@@ -17,6 +17,9 @@ export class Lexicon {
     while (key.startsWith('(') && key.endsWith(')')) {
       key = key.slice(1, -1).trim()
     }
+    while (this.aliases[key]) {
+      key = this.aliases[key]
+    }
 
     for (const operator in this.operations) {
       const parts = this.splitOutsideParens(key, operator)
@@ -27,9 +30,6 @@ export class Lexicon {
       }
     }
 
-    while (this.aliases[key]) {
-      key = this.aliases[key]
-    }
     if (this.customs[key]) {
       return [...this.customs[key]]
     }
