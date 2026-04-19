@@ -89,7 +89,7 @@ export class Lexicon {
       count = Number.parseInt(match[1], 10)
       key = key.slice(0, -match[0].length)
     }
-    return Random.pick(this.lookup(key), count).join('')
+    return Random.pick(this.lookup(`%(${key})`, key), count).join('')
   }
 
   operations: Record<string, (acc: string[], arr: string[]) => string[]> = {

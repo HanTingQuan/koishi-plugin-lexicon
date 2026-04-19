@@ -26,5 +26,6 @@ export default new Lexicon({
   ...mapValues(pingshui, dict => Object.keys(dict).join('+')),
   ...makeAlias(yunbus, key => key[key.length - 1]),
   ...makeAlias(standard, key => key[0]),
-  通规: Object.keys(standard).join('+'),
+  通用规范汉字: Object.keys(standard).join('+'),
+  通规: '通用规范汉字',
 })
