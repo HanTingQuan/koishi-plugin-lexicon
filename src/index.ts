@@ -1,5 +1,6 @@
 import type { Context } from 'koishi'
-import { h, Random, Schema } from 'koishi'
+import {} from '@koishijs/plugin-help'
+import { h, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
 import Lexicon from './data'
 
@@ -7,14 +8,12 @@ export const name = 'lexicon'
 
 export interface Config {
   separator: string
-  interpPairs: string[]
   customDictionary: Record<string, string[]>
   dictionaryAlias: Record<string, string>
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
-  interpPairs: Schema.tuple([Schema.string(), Schema.string()]).default(['【', '】']).description('插值前后缀。'),
   customDictionary: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
   dictionaryAlias: Schema.dict(Schema.union(Object.keys(Lexicon.dictionary))).description('字典别名。'),
 })
@@ -23,10 +22,6 @@ export function apply(ctx: Context, config: Config) {
   Object.assign(Lexicon.aliases, config.dictionaryAlias)
   Lexicon.customs = config.customDictionary
 
-  const interp = (key: string) => `${config.interpPairs[0]}${key}${config.interpPairs[1]}`
-
-  const interpolation = new RegExp(interp('(.*?)'), 'g')
-
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
     .option('separator', '-s <sep:string> 分隔符。')
@@ -34,8 +29,11 @@ export function apply(ctx: Context, config: Config) {
     .example('`lkup <key>` 查询key的字典。')
     .action(async ({ options }, key) => {
       if (!key) {
-        return h('markdown', Object.keys(Lexicon.dictionary)
-          .map(key => shortcut.input(interp(key), key))
+        return h('markdown', [
+          ...Object.keys(Lexicon.dictionary),
+          ...Object.keys(Lexicon.customs),
+        ]
+          .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
       }
       return Lexicon.lookup(key).join(options?.separator || config.separator)
@@ -50,14 +48,14 @@ export function apply(ctx: Context, config: Config) {
     .option('force', '-f 强制添加。')
     .option('remove', '-r 移除字典值。')
     .option('separator', '-s <sep:string> 分隔符。')
-    .example(`\`push <key> <value>\` 添加value到${interp('key')}。`)
+    .example(`\`push <key> <value>\` 添加value到%(<key>)。`)
     .action(async ({ session, options }, key, ...values) => {
       const sep = options?.separator || config.separator
       if (!session)
         return
 
       if (Lexicon.dictionary[key])
-        return `${interp(key)}是内置字典，无法更改。`
+        return `%(${key}) 是内置字典，无法更改。`
 
       if (!config.customDictionary[key])
         config.customDictionary[key] = []
@@ -67,11 +65,11 @@ export function apply(ctx: Context, config: Config) {
           return `请提供要添加的值。`
 
         if (!options.force)
-          return `如要移除字典${interp(key)}，请使用 --force 选项。`
+          return `如要移除字典 %(${key})，请使用 --force 选项。`
 
         delete config.customDictionary[key]
         ctx.scope.update(config)
-        return `已成功移除字典${interp(key)}。`
+        return `已成功移除字典 %(${key})。`
       }
 
       const success = []
@@ -135,20 +133,24 @@ export function apply(ctx: Context, config: Config) {
     })
 
   ctx.command('echo <message:text>', '输出消息。')
-    .alias('填字')
-    .example(`\`echo ${interp('平水韵')}\` 输出随机平水韵韵部。`)
-    .action(async (_, message) => {
+    .alias('填字', { options: { tips: true } })
+    .option('tips', '显示贴士。')
+    .example(`\`echo %(平水韵)\` 输出随机平水韵韵部。`)
+    .action(async ({ options }, message) => {
       return h('markdown', [
-        message.replaceAll(interpolation, (raw, key: string) => {
-          let match
-          if (match = key.match(/\*(\d+)$/)) {
-            const count = Number.parseInt(match[1], 10)
-            key = key.slice(0, -match[0].length)
-            return Random.pick(Lexicon.lookup(raw, key), count).join('')
-          }
-          return Random.pick(Lexicon.lookup(raw, key))
-        }),
-        `> 👉 ${shortcut.input(`echo ${message}`, '再来一次')}`,
-      ].join('\n'))
+        Lexicon.resolve(message),
+        options?.tips && `> 👉 ${shortcut.input(`echo ${message}`, '再来一次')}`,
+      ].filter(Boolean).join('\n')) || '空白字符串'
     })
+
+  ctx.command('chars <message:text>', { hidden: true })
+    .action((_, message) => `(${Array.from(new Set(message.replaceAll(/\s+/g, ''))).join('|')})`)
+
+  ctx.middleware((session, next) => {
+    const content = session.content
+      || session.elements?.[0].children.join('')
+      || '海狶不知道哦~'
+
+    return next(() => Lexicon.resolve(content))
+  }, true)
 }
