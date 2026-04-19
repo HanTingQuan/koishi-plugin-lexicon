@@ -7,35 +7,41 @@ export class Lexicon {
     public customs: Record<string, string[]> = {},
   ) {}
 
-  find(value: string, sep = '=', weak = '*'): string[] {
-    const result = []
+  find(value: string) {
+    const result: {
+      key: string
+      weak: boolean
+    }[] = []
+
     for (const key in this.dictionary) {
       const array = Array.from(this.dictionary[key])
       if (array.includes(value))
-        result.push(key)
+        result.push({ key, weak: false })
       else if (array.join().includes(value))
-        result.push(weak + key)
+        result.push({ key, weak: true })
     }
+
     for (const key in this.customs) {
       if (this.customs[key].includes(value))
-        result.push(key)
+        result.push({ key, weak: false })
       else if (this.customs[key].join().includes(value))
-        result.push(weak + key)
+        result.push({ key, weak: true })
     }
+
     for (const key in this.aliases) {
-      const index: number = result.findIndex(
-        item => item.replace(weak, '').split(sep).includes(this.aliases[key]),
-      )
+      const dest = this.splitOutsideParens(this.aliases[key], '|')
+      const index: number = result.findIndex(item => dest.includes(item.key))
       if (index !== -1) {
-        result[index] = key + sep + result[index]
+        result.push({ key, weak: result[index].weak })
         continue
       }
       const array = this.lookup(key)
       if (array.includes(value))
-        result.push(key)
+        result.push({ key, weak: false })
       else if (array.join().includes(value))
-        result.push(weak + key)
+        result.push({ key, weak: true })
     }
+
     return result
   }
 

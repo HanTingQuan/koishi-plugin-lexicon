@@ -142,10 +142,8 @@ export function apply(ctx: Context, config: Config) {
       for (const value of values) {
         const keys = Lexicon.find(value)
         if (keys.length) {
-          result.push(`${value} 所在字典：${keys.map(key => key[0] === '*'
-            ? `*${shortcut.input(key.slice(1).split('=')[0], key.slice(1))}*`
-            : shortcut.input(key.split('=')[0], key),
-          ).join(sep)}`)
+          result.push(`${value} 所在字典：${keys.map(key =>
+            shortcut.input(`%(${key.key})`, key.key)).join(sep)}`)
         }
         else {
           result.push(`${value} 未找到。`)
