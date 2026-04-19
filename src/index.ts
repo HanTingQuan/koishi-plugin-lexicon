@@ -139,7 +139,7 @@ export function apply(ctx: Context, config: Config) {
     .action(async ({ options }, message) => {
       return h('markdown', [
         Lexicon.resolve(message),
-        options?.tips && `> 👉 ${shortcut.input(`echo ${message}`, '再来一次')}`,
+        options?.tips && `> 👉 ${shortcut.input(`填字 ${message}`, '再来一次')}`,
       ].filter(Boolean).join('\n')) || '空白字符串'
     })
 
