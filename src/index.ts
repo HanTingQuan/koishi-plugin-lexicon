@@ -39,6 +39,29 @@ export function apply(ctx: Context, config: Config) {
       return Lexicon.lookup(key).join(options?.separator || config.separator)
     })
 
+  ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
+    .alias('别名')
+    .option('long', '-l 显示详细格式。')
+    .option('separator', '-s <sep:string> 分隔符。')
+    .example('`alias` 查询所有别名。')
+    .example('`alias <src>` 查询src的别名。')
+    .example('`alias <src> <dest>` 设置src的别名。')
+    .action(async ({ options }, src, dest) => {
+      if (src && dest) {
+        config.dictionaryAlias[src] = dest
+        ctx.scope.update(config)
+        return `设置成功：${src}=${dest}`
+      }
+      if (src)
+        return Lexicon.aliases[src] || `未知别名：${src}`
+      return options?.long
+        ? Object.entries(Lexicon.aliases)
+            .map(([key, value]) => `${key} → ${value}`)
+            .join('\n')
+        : Object.keys(Lexicon.aliases)
+            .join(options?.separator || config.separator)
+    })
+
   ctx.command('push [key:string] [...values:string]', '添加字典值。')
     .alias('append', '添加')
     .alias('delete', { options: { remove: true } })
@@ -107,29 +130,6 @@ export function apply(ctx: Context, config: Config) {
       }
 
       return void ctx.scope.update(config)
-    })
-
-  ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
-    .alias('别名')
-    .option('long', '-l 显示详细格式。')
-    .option('separator', '-s <sep:string> 分隔符。')
-    .example('`alias` 查询所有别名。')
-    .example('`alias <src>` 查询src的别名。')
-    .example('`alias <src> <dest>` 设置src的别名。')
-    .action(async ({ options }, src, dest) => {
-      if (src && dest) {
-        config.dictionaryAlias[src] = dest
-        ctx.scope.update(config)
-        return `设置成功：${src}=${dest}`
-      }
-      if (src)
-        return Lexicon.aliases[src] || `未知别名：${src}`
-      return options?.long
-        ? Object.entries(Lexicon.aliases)
-            .map(([key, value]) => `${key} → ${value}`)
-            .join('\n')
-        : Object.keys(Lexicon.aliases)
-            .join(options?.separator || config.separator)
     })
 
   ctx.command('echo <message:text>', '输出消息。')
