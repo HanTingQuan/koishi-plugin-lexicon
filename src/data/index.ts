@@ -22,8 +22,11 @@ export const dictionary: Record<string, string | string[]> = {
   千字文,
 }
 
-export const dictionaryAlias = {
-  ...Object.fromEntries(Object.keys(yindiaos).map(key => [key[0], key])),
-  ...Object.fromEntries(Object.keys(yunbus).map(key => [key[key.length - 1], key])),
-  ...Object.fromEntries(Object.keys(standard).map(key => [key[0], key])),
-}
+for (const key in Object.keys(yindiaos))
+  dictionary[key[0]] = [key]
+
+for (const key in Object.keys(yunbus))
+  dictionary[key[key.length - 1]] = [key]
+
+for (const key in Object.keys(standard))
+  dictionary[key[0]] = [key]
