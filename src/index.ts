@@ -62,6 +62,33 @@ export function apply(ctx: Context, config: Config) {
         : Object.keys(Lexicon.aliases)
             .join(options?.separator || config.separator)
     })
+    .subcommand('.remove [...src:string]', '移除别名。')
+    .alias('.rm', '移除别名', '删除别名')
+    .option('separator', '-s <sep:string> 分隔符。')
+    .action(async ({ session, options }, ...src) => {
+      if (!session)
+        return
+      if (!src.length)
+        return `请提供要移除的别名。`
+      const sep = options?.separator || config.separator
+      const success = []
+      const failed = []
+      for (const item of src) {
+        const dest = config.dictionaryAlias[item]
+        if (!dest) {
+          failed.push(item)
+          continue
+        }
+        delete config.dictionaryAlias[item]
+        success.push(`${item} -> ${dest}`)
+      }
+      if (success.length) {
+        ctx.scope.update(config)
+        await session.send(`移除成功：\n${success.join('\n')}`)
+      }
+      if (failed.length)
+        await session.send(`未知别名：${failed.join(sep)}`)
+    })
 
   ctx.command('push [key:string] [...values:string]', '添加字典值。')
     .alias('append', '添加')
