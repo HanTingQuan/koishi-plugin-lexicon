@@ -15,7 +15,7 @@ export interface Config {
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   customDictionary: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
-  dictionaryAlias: Schema.dict(Schema.union(Object.keys(Lexicon.dictionary))).description('字典别名。'),
+  dictionaryAlias: Schema.dict(Schema.string()).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {
