@@ -1,3 +1,4 @@
+import type { Logger } from 'koishi'
 import { Random } from 'koishi'
 
 function isBalanced(expr: string): boolean {
@@ -17,6 +18,8 @@ function isBalanced(expr: string): boolean {
 }
 
 export class Lexicon {
+  logger: Logger | null = null
+
   constructor(
     public builtins: Record<string, string[] | string>,
     public customs: Record<string, string[]> = {},
@@ -39,6 +42,12 @@ export class Lexicon {
   }
 
   resolve(string: string): string {
+    const result = this._resolve(string)
+    string !== result && this.logger?.info('resolve', string, result)
+    return result
+  }
+
+  _resolve(string: string): string {
     let start = 0
     let result = ''
 
@@ -74,14 +83,23 @@ export class Lexicon {
     return result || '海狶不知道哦~'
   }
 
-  private evaluate(key: string): string {
+  evaluate(key: string): string {
+    const result = this._evaluate(key)
+    this.logger?.info('evaluate', key, result)
+    return result
+  }
+
+  private _evaluate(key: string): string {
     let count = 1
     const match = key.match(/\*(\d+)$/)
     if (match) {
       count = Number.parseInt(match[1], 10)
       key = key.slice(0, -match[0].length)
     }
-    return this.resolve(Random.pick(this.lookup(key), count).join(''))
+    const array = Random.pick(this.lookup(key), count)
+    while (array.length < count)
+      array.push(Random.pick(array))
+    return this.resolve(array.join(''))
   }
 
   operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
@@ -103,6 +121,12 @@ export class Lexicon {
   }
 
   lookup(key: string): string[] {
+    const result = this._lookup(key)
+    this.logger?.info('lookup', key, result)
+    return result
+  }
+
+  _lookup(key: string): string[] {
     while (key.startsWith('(') && key.endsWith(')') && isBalanced(key)) {
       key = key.slice(1, -1)
     }

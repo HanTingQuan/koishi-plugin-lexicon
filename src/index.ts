@@ -1,21 +1,24 @@
 import type { Context } from 'koishi'
 import {} from '@koishijs/plugin-help'
-import { h, mapValues, Schema } from 'koishi'
+import { h, Logger, mapValues, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
 import Lexicon from './data'
 
 export const name = 'lexicon'
+const logger = new Logger(name)
 
 export interface Config {
   separator: string
   customs: Record<string, string[]>
   aliases: Record<string, string>
+  debugging: boolean
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   customs: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
   aliases: Schema.dict(Schema.string()).description('字典别名。'),
+  debugging: Schema.boolean().default(false).description('是否开启调试模式。'),
 })
 
 export function apply(ctx: Context, config: Config) {
@@ -23,6 +26,8 @@ export function apply(ctx: Context, config: Config) {
     config.customs,
     mapValues(config.aliases, key => [key]),
   )
+  if (config.debugging)
+    Lexicon.logger = logger
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
