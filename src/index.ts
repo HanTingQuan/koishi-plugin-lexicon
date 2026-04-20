@@ -1,6 +1,6 @@
 import type { Context } from 'koishi'
 import {} from '@koishijs/plugin-help'
-import { h, makeArray, Schema } from 'koishi'
+import { h, mapValues, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
 import Lexicon from './data'
 
@@ -19,10 +19,11 @@ export const Config: Schema<Config> = Schema.object({
 })
 
 export function apply(ctx: Context, config: Config) {
-  Lexicon.customs = config.customs
+  Lexicon.customs = Object.assign(config.customs, mapValues(config.customs, Array.from))
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
+    .option('long', '-l 展开所有别名。')
     .option('separator', '-s <sep:string> 分隔符。')
     .example('`lkup` 查询所有字典目录。')
     .example('`lkup <key>` 查询key的字典。')
@@ -31,15 +32,16 @@ export function apply(ctx: Context, config: Config) {
         return h('markdown', [
           ...Object.keys(Lexicon.builtins),
           ...Object.keys(Lexicon.customs),
-          // ...Object.keys(Lexicon.aliases),
         ]
           .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
       }
-      // if (Lexicon.aliases[key]?.includes('%'))
-      //   return Lexicon.aliases[key]
-      return makeArray(Lexicon.customs[key] || Lexicon.builtins[key] || key)
-        .join(options?.separator || config.separator)
+      key = Lexicon.lookup(key).join(options?.separator || config.separator)
+      while (options?.long && key.startsWith('%(') && key.endsWith(')')) {
+        key = Lexicon.lookup(key.slice(2, -1))
+          .join(options?.separator || config.separator)
+      }
+      return key
     })
     .subcommand('.remove [...src:string]', '移除别名。')
     .alias('.rm', '移除别名', '删除别名')

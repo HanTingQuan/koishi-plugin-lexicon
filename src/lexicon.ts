@@ -1,9 +1,8 @@
-import type { MaybeArray } from 'koishi'
 import { Random } from 'koishi'
 
 export class Lexicon {
   constructor(
-    public builtins: Record<string, MaybeArray<string>>,
+    public builtins: Record<string, string[] | string>,
     public customs: Record<string, string[]> = {},
   ) {}
 
@@ -74,7 +73,7 @@ export class Lexicon {
       count = Number.parseInt(match[1], 10)
       key = key.slice(0, -match[0].length)
     }
-    return Random.pick(this.lookup(key), count).join('')
+    return this.resolve(Random.pick(this.lookup(key), count).join(''))
   }
 
   operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
@@ -84,6 +83,11 @@ export class Lexicon {
   }
 
   lookup(key: string): string[] {
+    while (key.startsWith('(') && key.endsWith(')')
+      && key.slice(1).indexOf('(') < key.indexOf(')')) {
+      key = key.slice(1, -1)
+    }
+
     const parts = this.splitOutsideParens(key, '|')
     if (parts.length > 1)
       return parts
@@ -97,17 +101,11 @@ export class Lexicon {
       }
     }
 
-    for (const dictionary of [this.builtins, this.customs]) {
-      const value = dictionary[key]
-      if (typeof value === 'string'
-        && value.startsWith('%(')
-        && value.endsWith(')')) {
-        return this.lookup(this.resolve(value))
-      }
-      else if (value) {
-        return Array.from(value)
-      }
-    }
+    if (this.builtins[key])
+      return Array.from(this.builtins[key])
+
+    if (this.customs[key])
+      return this.customs[key]
 
     return [key]
   }

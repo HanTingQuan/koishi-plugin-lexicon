@@ -16,18 +16,18 @@ export default new Lexicon({
   並母: '%(并母)',
   喻母: '%(以母+云母)',
   平水韵: Object.keys(平水韵韵部),
-  ...mapValues(平水韵, 声调 => merge(Object.keys(声调))), // 平声，上声，去声，入声
+  平: ['%(平声)'],
+  仄: ['%(上声+去声+入声)'],
+  ...mapValues(平水韵, makeAlias), // 平声，上声，去声，入声
   ...平水韵韵部, // 一东，二冬，三江，四支……
   千字文,
   百家姓,
   ...通用规范汉字,
+  通用规范汉字: makeAlias(通用规范汉字),
   天干: '甲乙丙丁戊己庚辛壬癸',
   地支: '子丑寅卯辰巳午未申酉戌亥',
-  平: '%(平声)',
-  仄: '%(上声+去声+入声)',
-  通用规范汉字: merge(Object.keys(通用规范汉字)),
 })
 
-function merge(args: string[]) {
-  return `%(${args.join('+')})`
+function makeAlias(object: Record<string, any>) {
+  return [`%(${Object.keys(object).join('+')})`]
 }
