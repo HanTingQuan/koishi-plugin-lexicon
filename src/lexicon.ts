@@ -112,7 +112,7 @@ export class Lexicon {
     const lookup = this.lookup.bind(this)
 
     function go(key: string): string[] {
-      if (key.startsWith('%(') && key.endsWith(')') && isBalanced(key))
+      if (key.startsWith('%(') && key.endsWith(')') && isBalanced(key.slice(2, -1)))
         return lookup(key.slice(2, -1)).flatMap(go)
       return [key]
     }
@@ -127,7 +127,7 @@ export class Lexicon {
   }
 
   _lookup(key: string): string[] {
-    while (key.startsWith('(') && key.endsWith(')') && isBalanced(key)) {
+    while (key.startsWith('(') && key.endsWith(')') && isBalanced(key.slice(1, -1))) {
       key = key.slice(1, -1)
     }
 
