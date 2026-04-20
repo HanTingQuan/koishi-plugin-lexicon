@@ -167,14 +167,18 @@ export function apply(ctx: Context, config: Config) {
     })
 
   ctx.command('echo <message:text>', '输出消息。')
+    .alias('发', { options: { tips: true } })
     .alias('填字', { options: { tips: true } })
-    .option('tips', '显示贴士。')
+    .option('tips', '-t 显示贴士。')
     .example(`\`echo %(平水韵)\` 输出随机平水韵韵部。`)
     .action(({ options }, message) => {
+      if (!message) {
+        return '请提供要输出的消息。'
+      }
       return h('markdown', [
         Lexicon.resolve(message),
         options?.tips && `> 👉 ${shortcut.input(`填字 ${message}`, '再来一次')}`,
-      ].filter(Boolean).join('\n')) || '空白字符串'
+      ].filter(Boolean).join('\n'))
     })
 
   ctx.command('chars <message:text>', { hidden: true })
