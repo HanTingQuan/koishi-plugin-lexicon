@@ -179,8 +179,12 @@ export function apply(ctx: Context, config: Config) {
       for (const value of values) {
         const keys = Lexicon.find(value)
         if (keys.length) {
-          result.push(`${value} 所在字典：${keys.map(key =>
-            shortcut.input(`%(${key.key})`, key.key)).join(sep)}`)
+          result.push(`${value} 所在字典：${keys
+            .map(key => key.weak
+              ? shortcut.input(`%(${key.key})`, `*${key.key}*`)
+              : shortcut.input(`%(${key.key})`, key.key),
+            )
+            .join(sep)}`)
         }
         else {
           result.push(`${value} 未找到。`)
