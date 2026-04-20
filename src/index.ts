@@ -155,7 +155,7 @@ export function apply(ctx: Context, config: Config) {
         if (entries.length) {
           result.push(`${value} 所在字典：${entries
             .map(([key, value]) => value
-              ? shortcut.input(`%(${key})`, `*${key}*`)
+              ? `*${shortcut.input(`%(${key})`, key)}*`
               : shortcut.input(`%(${key})`, key))
             .join(sep)}`)
         }
