@@ -78,7 +78,7 @@ export class Lexicon {
       }
     }
 
-    return result
+    return result || '海狶不知道哦~'
   }
 
   private evaluatePlaceholder(keyWithSuffix: string): string {
