@@ -37,6 +37,8 @@ export function apply(ctx: Context, config: Config) {
           .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
       }
+      if (Lexicon.aliases[key]?.includes('%'))
+        return Lexicon.aliases[key]
       return Lexicon.lookup(key).join(options?.separator || config.separator)
     })
 
