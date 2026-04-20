@@ -123,8 +123,8 @@ export function apply(ctx: Context, config: Config) {
         return `已成功移除字典 %(${key})。`
       }
 
-      const success = []
-      const failed = []
+      const success: string[] = []
+      const failed: string[] = []
 
       for (const item of values) {
         const index = config.customDictionary[key].indexOf(item)
@@ -135,7 +135,7 @@ export function apply(ctx: Context, config: Config) {
             failed.push(item)
         }
         else {
-          if (index === -1 || options?.force)
+          if ((index === -1 && !success.includes(item)) || options?.force)
             success.push(item)
           else
             failed.push(item)
