@@ -23,10 +23,10 @@ export default new Lexicon({
   天干: '甲乙丙丁戊己庚辛壬癸',
   地支: '子丑寅卯辰巳午未申酉戌亥',
 }, {
-  仄: '上+去+入',
-  ...mapValues(pingshui, dict => Object.keys(dict).join('+')), // 平(声)，上(声)，去(声)，入(声)
-  ...makeAlias(Object.keys(yunbus), key => key[key.length - 1]), // (一)东，(二)冬，(三)江，(四)支……
+  ...mapValues(pingshui, dict => Object.keys(dict).join('+')), // 平声，上声，去声，入声
   ...makeAlias(Object.keys(standard), key => key[0]), // 一(级字)，二(级字)，三(级字)
   通用规范汉字: Object.keys(standard).join('+'),
+  平: '平声',
+  仄: '上声+去声+入声',
   通规: '通用规范汉字',
 })
