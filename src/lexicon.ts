@@ -1,9 +1,9 @@
+import type { MaybeArray } from 'koishi'
 import { Random } from 'koishi'
 
 export class Lexicon {
   constructor(
-    public builtins: Record<string, string | string[]>,
-    public aliases: Record<string, keyof typeof this.builtins>,
+    public builtins: Record<string, MaybeArray<string>>,
     public customs: Record<string, string[]> = {},
   ) {}
 
@@ -25,20 +25,6 @@ export class Lexicon {
       if (this.customs[key].includes(value))
         result.push({ key, weak: false })
       else if (this.customs[key].join().includes(value))
-        result.push({ key, weak: true })
-    }
-
-    for (const key in this.aliases) {
-      const dest = this.splitOutsideParens(this.aliases[key], '|')
-      const index: number = result.findIndex(item => dest.includes(item.key))
-      if (index !== -1) {
-        result.push({ key, weak: result[index].weak })
-        continue
-      }
-      const array = this.lookup(key)
-      if (array.includes(value))
-        result.push({ key, weak: false })
-      else if (array.join().includes(value))
         result.push({ key, weak: true })
     }
 
@@ -65,11 +51,11 @@ export class Lexicon {
           end++
         }
         if (end >= string.length)
-          return string
+          return '解析出错了！'
 
         const innerRaw = string.slice(start + 2, end) // %(
         const resolvedInner = this.resolve(innerRaw)
-        result += this.evaluatePlaceholder(resolvedInner)
+        result += this.evaluate(resolvedInner)
         start = end + 1
       }
       else {
@@ -81,7 +67,7 @@ export class Lexicon {
     return result || '海狶不知道哦~'
   }
 
-  private evaluatePlaceholder(key: string): string {
+  private evaluate(key: string): string {
     let count = 1
     const match = key.match(/\*(\d+)$/)
     if (match) {
@@ -98,19 +84,6 @@ export class Lexicon {
   }
 
   lookup(key: string): string[] {
-    while (key.startsWith('(') && key.endsWith(')')
-      && key.slice(1).indexOf('(') < key.indexOf(')')) {
-      key = key.slice(1, -1)
-    }
-    while (this.aliases[key]) {
-      key = this.aliases[key]
-    }
-    let resolved = this.resolve(key)
-    while (key !== resolved) {
-      resolved = key
-      key = this.resolve(key)
-    }
-
     const parts = this.splitOutsideParens(key, '|')
     if (parts.length > 1)
       return parts
@@ -124,11 +97,17 @@ export class Lexicon {
       }
     }
 
-    if (this.customs[key])
-      return Array.from(this.customs[key])
-
-    if (this.builtins[key])
-      return Array.from(this.builtins[key])
+    for (const dictionary of [this.builtins, this.customs]) {
+      const value = dictionary[key]
+      if (typeof value === 'string'
+        && value.startsWith('%(')
+        && value.endsWith(')')) {
+        return this.lookup(this.resolve(value))
+      }
+      else if (value) {
+        return Array.from(value)
+      }
+    }
 
     return [key]
   }

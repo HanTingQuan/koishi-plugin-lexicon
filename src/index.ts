@@ -1,6 +1,6 @@
 import type { Context } from 'koishi'
 import {} from '@koishijs/plugin-help'
-import { h, Schema } from 'koishi'
+import { h, makeArray, Schema } from 'koishi'
 import { shortcut } from 'koishi-plugin-montmorill'
 import Lexicon from './data'
 
@@ -8,19 +8,18 @@ export const name = 'lexicon'
 
 export interface Config {
   separator: string
-  customDictionary: Record<string, string[]>
-  dictionaryAlias: Record<string, string>
+  customs: Record<string, string[]>
+  aliases: Record<string, string>
 }
 
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
-  customDictionary: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
-  dictionaryAlias: Schema.dict(Schema.string()).description('字典别名。'),
+  customs: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
+  aliases: Schema.dict(Schema.string()).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {
-  Object.assign(Lexicon.aliases, config.dictionaryAlias)
-  Lexicon.customs = config.customDictionary
+  Lexicon.customs = config.customs
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
@@ -32,37 +31,15 @@ export function apply(ctx: Context, config: Config) {
         return h('markdown', [
           ...Object.keys(Lexicon.builtins),
           ...Object.keys(Lexicon.customs),
-          ...Object.keys(Lexicon.aliases),
+          // ...Object.keys(Lexicon.aliases),
         ]
           .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
       }
-      if (Lexicon.aliases[key]?.includes('%'))
-        return Lexicon.aliases[key]
-      return Lexicon.lookup(key).join(options?.separator || config.separator)
-    })
-
-  ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
-    .alias('别名')
-    .option('long', '-l 显示详细格式。')
-    .option('separator', '-s <sep:string> 分隔符。')
-    .example('`alias` 查询所有别名。')
-    .example('`alias <src>` 查询src的别名。')
-    .example('`alias <src> <dest>` 设置src的别名。')
-    .action(({ options }, src, dest) => {
-      if (src && dest) {
-        config.dictionaryAlias[src] = dest
-        ctx.scope.update(config)
-        return `设置成功：${src}=${dest}`
-      }
-      if (src)
-        return Lexicon.aliases[src] || `未知别名：${src}`
-      return options?.long
-        ? Object.entries(Lexicon.aliases)
-            .map(([key, value]) => `${key} → ${value}`)
-            .join('\n')
-        : Object.keys(Lexicon.aliases)
-            .join(options?.separator || config.separator)
+      // if (Lexicon.aliases[key]?.includes('%'))
+      //   return Lexicon.aliases[key]
+      return makeArray(Lexicon.customs[key] || Lexicon.builtins[key] || key)
+        .join(options?.separator || config.separator)
     })
     .subcommand('.remove [...src:string]', '移除别名。')
     .alias('.rm', '移除别名', '删除别名')
@@ -76,12 +53,12 @@ export function apply(ctx: Context, config: Config) {
       const success = []
       const failed = []
       for (const item of src) {
-        const dest = config.dictionaryAlias[item]
+        const dest = config.aliases[item]
         if (!dest) {
           failed.push(item)
           continue
         }
-        delete config.dictionaryAlias[item]
+        delete config.aliases[item]
         success.push(`${item} -> ${dest}`)
       }
       if (success.length) {
@@ -110,8 +87,8 @@ export function apply(ctx: Context, config: Config) {
       if (Lexicon.builtins[key])
         return `%(${key}) 是内置字典，无法更改。`
 
-      if (!config.customDictionary[key])
-        config.customDictionary[key] = []
+      if (!config.customs[key])
+        config.customs[key] = []
 
       if (!values.length) {
         if (!options?.remove)
@@ -120,7 +97,7 @@ export function apply(ctx: Context, config: Config) {
         if (!options.force)
           return `如要移除字典 %(${key})，请使用 --force 选项。`
 
-        delete config.customDictionary[key]
+        delete config.customs[key]
         ctx.scope.update(config)
         return `已成功移除字典 %(${key})。`
       }
@@ -129,10 +106,10 @@ export function apply(ctx: Context, config: Config) {
       const failed: string[] = []
 
       for (const item of values) {
-        const index = config.customDictionary[key].indexOf(item)
+        const index = config.customs[key].indexOf(item)
         if (options?.remove) {
           if (index !== -1)
-            success.push(config.customDictionary[key].splice(index, 1)[0])
+            success.push(config.customs[key].splice(index, 1)[0])
           else
             failed.push(item)
         }
@@ -153,7 +130,7 @@ export function apply(ctx: Context, config: Config) {
       else {
         if (success.length === 0)
           return `添加失败：所有值都已存在，您可以使用 --force 选项强制添加。`
-        config.customDictionary[key].push(...success)
+        config.customs[key].push(...success)
         await session.send(`添加成功：${success.join(sep)}`)
         if (failed.length)
           await session.send(`添加失败，以下值已存在：${failed.join(sep)}`)
@@ -201,10 +178,7 @@ export function apply(ctx: Context, config: Config) {
     .action((_, message) => `(${Array.from(new Set(message.replaceAll(/\s+/g, ''))).join('|')})`)
 
   ctx.middleware((session, next) => {
-    const content = session.content
-      || session.elements?.[0].children.join('')
-      || '海狶不知道哦~'
-
-    return next(() => Lexicon.resolve(content))
+    return session.content
+      && next(() => Lexicon.resolve(session.content!))
   }, true)
 }

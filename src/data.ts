@@ -13,18 +13,21 @@ const 平水韵韵部: Record<平水韵韵部, string> = Object.assign({}, ...Ob
 export default new Lexicon({
   切韵: Object.keys(切韵),
   ...切韵,
-  千字文,
+  並母: '%(并母)',
+  喻母: '%(以母+云母)',
   平水韵: Object.keys(平水韵韵部),
+  ...mapValues(平水韵, 声调 => merge(Object.keys(声调))), // 平声，上声，去声，入声
   ...平水韵韵部, // 一东，二冬，三江，四支……
+  千字文,
   百家姓,
   ...通用规范汉字,
   天干: '甲乙丙丁戊己庚辛壬癸',
   地支: '子丑寅卯辰巳午未申酉戌亥',
-}, {
-  ...mapValues(平水韵, 声调 => Object.keys(声调).join('+')), // 平声，上声，去声，入声
   平: '%(平声)',
   仄: '%(上声+去声+入声)',
-  通用规范汉字: Object.keys(通用规范汉字).join('+'),
-  並母: '%(并母)',
-  喻母: '%(以母+云母)',
+  通用规范汉字: merge(Object.keys(通用规范汉字)),
 })
+
+function merge(args: string[]) {
+  return `%(${args.join('+')})`
+}
