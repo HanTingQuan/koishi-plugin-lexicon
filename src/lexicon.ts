@@ -1,5 +1,21 @@
 import { Random } from 'koishi'
 
+function isBalanced(expr: string): boolean {
+  let depth = 0
+  for (let index = 0; index < expr.length; index++) {
+    const char = expr[index]
+    if (char === '(') {
+      depth++
+    }
+    else if (char === ')') {
+      if (depth === 0)
+        return false
+      depth--
+    }
+  }
+  return depth === 0
+}
+
 export class Lexicon {
   constructor(
     public builtins: Record<string, string[] | string>,
@@ -7,24 +23,16 @@ export class Lexicon {
   ) {}
 
   find(value: string) {
-    const result: {
-      key: string
-      weak: boolean
-    }[] = []
+    const result: Record<string, boolean> = {}
 
-    for (const key in this.builtins) {
-      const array = Array.from(this.builtins[key])
-      if (array.includes(value))
-        result.push({ key, weak: false })
-      else if (array.join().includes(value))
-        result.push({ key, weak: true })
-    }
-
-    for (const key in this.customs) {
-      if (this.customs[key].includes(value))
-        result.push({ key, weak: false })
-      else if (this.customs[key].join().includes(value))
-        result.push({ key, weak: true })
+    for (const dictionary of [this.builtins, this.customs]) {
+      for (const key in dictionary) {
+        const array = this.lookupRecursive(key)
+        if (array.includes(value))
+          result[key] = false
+        else if (array.join().includes(value))
+          result[key] = true
+      }
     }
 
     return result
@@ -82,9 +90,20 @@ export class Lexicon {
     '&': (a: string[], b: string[]) => a.filter(item => b.includes(item)),
   }
 
+  lookupRecursive(key: string): string[] {
+    const lookup = this.lookup.bind(this)
+
+    function go(key: string): string[] {
+      if (key.startsWith('%(') && key.endsWith(')') && isBalanced(key))
+        return lookup(key.slice(2, -1)).flatMap(go)
+      return [key]
+    }
+
+    return this.lookup(key).flatMap(go)
+  }
+
   lookup(key: string): string[] {
-    while (key.startsWith('(') && key.endsWith(')')
-      && key.slice(1).indexOf('(') < key.indexOf(')')) {
+    while (key.startsWith('(') && key.endsWith(')') && isBalanced(key)) {
       key = key.slice(1, -1)
     }
 

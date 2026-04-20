@@ -26,7 +26,7 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
-    .option('long', '-l 展开所有别名。')
+    .option('recursive', '-r 展开所有别名。')
     .option('separator', '-s <sep:string> 分隔符。')
     .example('`lkup` 查询所有字典目录。')
     .example('`lkup <key>` 查询key的字典。')
@@ -39,12 +39,11 @@ export function apply(ctx: Context, config: Config) {
           .map(key => shortcut.input(`%(${key})`, key))
           .join(options?.separator || config.separator))
       }
-      key = Lexicon.lookup(key).join(options?.separator || config.separator)
-      while (options?.long && key.startsWith('%(') && key.endsWith(')')) {
-        key = Lexicon.lookup(key.slice(2, -1))
-          .join(options?.separator || config.separator)
-      }
-      return key
+
+      const lookup = options?.recursive
+        ? Lexicon.lookupRecursive.bind(Lexicon)
+        : Lexicon.lookup.bind(Lexicon)
+      return lookup(key).join(options?.separator || config.separator)
     })
     .subcommand('.remove [...src:string]', '移除别名。')
     .alias('.rm', '移除别名', '删除别名')
@@ -152,13 +151,12 @@ export function apply(ctx: Context, config: Config) {
       const sep = options?.separator || config.separator
       const result: string[] = []
       for (const value of values) {
-        const keys = Lexicon.find(value)
-        if (keys.length) {
-          result.push(`${value} 所在字典：${keys
-            .map(key => key.weak
-              ? shortcut.input(`%(${key.key})`, `*${key.key}*`)
-              : shortcut.input(`%(${key.key})`, key.key),
-            )
+        const entries = Object.entries(Lexicon.find(value))
+        if (entries.length) {
+          result.push(`${value} 所在字典：${entries
+            .map(([key, value]) => value
+              ? shortcut.input(`%(${key})`, `*${key}*`)
+              : shortcut.input(`%(${key})`, key))
             .join(sep)}`)
         }
         else {
