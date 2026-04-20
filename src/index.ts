@@ -19,7 +19,10 @@ export const Config: Schema<Config> = Schema.object({
 })
 
 export function apply(ctx: Context, config: Config) {
-  Lexicon.customs = Object.assign(config.customs, mapValues(config.customs, Array.from))
+  Lexicon.customs = Object.assign(
+    config.customs,
+    mapValues(config.aliases, key => [key]),
+  )
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
