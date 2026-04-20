@@ -12,7 +12,7 @@ const 平水韵韵部: Record<平水韵韵部, string> = Object.assign({}, ...Ob
 
 export default new Lexicon({
   切韵: Object.keys(切韵),
-  ...切韵,
+  ...切韵, // 帮母，滂母，并母，明母……
   並母: '%(并母)',
   喻母: '%(以母+云母)',
   平水韵: Object.keys(平水韵韵部),
