@@ -15,7 +15,14 @@ export interface Config {
 export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   customDictionary: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
-  dictionaryAlias: Schema.dict(Schema.string()).description('字典别名。'),
+  dictionaryAlias: Schema.dict(Schema.string()).default({
+    平: '平声',
+    仄: '上声+去声+入声',
+    通规: '通用规范汉字',
+    A: '一级字',
+    B: '二级字',
+    C: '三级字',
+  }).description('字典别名。'),
 })
 
 export function apply(ctx: Context, config: Config) {

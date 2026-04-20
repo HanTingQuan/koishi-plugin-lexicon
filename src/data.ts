@@ -6,10 +6,6 @@ import 百家姓 from './data/百家姓.json'
 import standard from './data/通用规范汉字表.json'
 import { Lexicon } from './lexicon'
 
-function makeAlias(array: string[], f: (key: string) => string) {
-  return Object.fromEntries(array.map(key => [f(key), key]))
-}
-
 type Yunbu = keyof UnionToIntersection<typeof pingshui[keyof typeof pingshui]>
 
 const yunbus: Record<Yunbu, string> = Object.assign({}, ...Object.values(pingshui))
@@ -24,9 +20,5 @@ export default new Lexicon({
   地支: '子丑寅卯辰巳午未申酉戌亥',
 }, {
   ...mapValues(pingshui, dict => Object.keys(dict).join('+')), // 平声，上声，去声，入声
-  ...makeAlias(Object.keys(standard), key => key[0]), // 一(级字)，二(级字)，三(级字)
   通用规范汉字: Object.keys(standard).join('+'),
-  平: '平声',
-  仄: '上声+去声+入声',
-  通规: '通用规范汉字',
 })
