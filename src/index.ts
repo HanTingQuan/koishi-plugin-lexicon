@@ -180,6 +180,17 @@ export function apply(ctx: Context, config: Config) {
   ctx.command('chars <message:text>', { hidden: true })
     .action((_, message) => `(${Array.from(new Set(message.replaceAll(/\s+/g, ''))).join('|')})`)
 
+  ctx.command('grep <needle:string> <haystack:text>', { hidden: true })
+    .option('separator', '-s <sep:string> 分隔符。')
+    .action(({ options }, needle, haystack) => {
+      const sep = options?.separator || config.separator
+      const regex = new RegExp(needle, 'g')
+      return h('markdown', haystack.split(sep)
+        .filter(item => item.match(regex)).join(sep)
+        .replaceAll(regex, match => `**${match}**`)
+        .replaceAll('****', ''))
+    })
+
   ctx.middleware((session, next) => {
     return session.content
       && next(() => Lexicon.resolve(session.content!))
