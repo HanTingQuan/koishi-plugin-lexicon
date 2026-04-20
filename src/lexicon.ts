@@ -2,8 +2,8 @@ import { Random } from 'koishi'
 
 export class Lexicon {
   constructor(
-    public dictionary: Record<string, string | string[]>,
-    public aliases: Record<string, keyof typeof this.dictionary>,
+    public builtins: Record<string, string | string[]>,
+    public aliases: Record<string, keyof typeof this.builtins>,
     public customs: Record<string, string[]> = {},
   ) {}
 
@@ -13,8 +13,8 @@ export class Lexicon {
       weak: boolean
     }[] = []
 
-    for (const key in this.dictionary) {
-      const array = Array.from(this.dictionary[key])
+    for (const key in this.builtins) {
+      const array = Array.from(this.builtins[key])
       if (array.includes(value))
         result.push({ key, weak: false })
       else if (array.join().includes(value))
@@ -81,8 +81,7 @@ export class Lexicon {
     return result || '海狶不知道哦~'
   }
 
-  private evaluatePlaceholder(keyWithSuffix: string): string {
-    let key = keyWithSuffix
+  private evaluatePlaceholder(key: string): string {
     let count = 1
     const match = key.match(/\*(\d+)$/)
     if (match) {
@@ -93,17 +92,15 @@ export class Lexicon {
   }
 
   operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
-    '|': undefined as any,
     '+': (a: string[], b: string[]) => [...a, ...b],
     '-': (a: string[], b: string[]) => a.filter(item => !b.includes(item)),
     '&': (a: string[], b: string[]) => a.filter(item => b.includes(item)),
   }
 
   lookup(key: string): string[] {
-    key = key.trim()
     while (key.startsWith('(') && key.endsWith(')')
       && key.slice(1).indexOf('(') < key.indexOf(')')) {
-      key = key.slice(1, -1).trim()
+      key = key.slice(1, -1)
     }
     while (this.aliases[key]) {
       key = this.aliases[key]
@@ -114,11 +111,13 @@ export class Lexicon {
       key = this.resolve(key)
     }
 
+    const parts = this.splitOutsideParens(key, '|')
+    if (parts.length > 1)
+      return parts
+
     for (const operator in this.operations) {
       const parts = this.splitOutsideParens(key, operator)
       if (parts.length > 1) {
-        if (operator === '|')
-          return parts
         return parts
           .map(part => this.lookup(part))
           .reduce(this.operations[operator])
@@ -128,8 +127,8 @@ export class Lexicon {
     if (this.customs[key])
       return Array.from(this.customs[key])
 
-    if (this.dictionary[key])
-      return Array.from(this.dictionary[key])
+    if (this.builtins[key])
+      return Array.from(this.builtins[key])
 
     return [key]
   }
@@ -150,14 +149,14 @@ export class Lexicon {
       }
 
       else if (char === operator && depth === 0) {
-        const part = expr.slice(start, index).trim()
+        const part = expr.slice(start, index)
         if (part)
           parts.push(part)
         start = index + 1
       }
     }
 
-    const last = expr.slice(start).trim()
+    const last = expr.slice(start)
     if (last)
       parts.push(last)
 
