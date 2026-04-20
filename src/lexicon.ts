@@ -67,7 +67,7 @@ export class Lexicon {
         if (end >= string.length)
           return string
 
-        const innerRaw = string.slice(start + 2, end) // %()
+        const innerRaw = string.slice(start + 2, end) // %(
         const resolvedInner = this.resolve(innerRaw)
         result += this.evaluatePlaceholder(resolvedInner)
         start = end + 1
@@ -89,7 +89,7 @@ export class Lexicon {
       count = Number.parseInt(match[1], 10)
       key = key.slice(0, -match[0].length)
     }
-    return Random.pick(this.lookup(`%(${key})`, key), count).join('')
+    return Random.pick(this.lookup(key), count).join('')
   }
 
   operations: Record<string, (acc: string[], arr: string[]) => string[]> = {
@@ -99,7 +99,7 @@ export class Lexicon {
     '&': (a: string[], b: string[]) => a.filter(item => b.includes(item)),
   }
 
-  lookup(raw: string, key = raw): string[] {
+  lookup(key: string): string[] {
     key = key.trim()
     while (key.startsWith('(') && key.endsWith(')')
       && key.slice(1).indexOf('(') < key.indexOf(')')) {
@@ -108,6 +108,11 @@ export class Lexicon {
     while (this.aliases[key]) {
       key = this.aliases[key]
     }
+    let resolved = this.resolve(key)
+    while (key !== resolved) {
+      resolved = key
+      key = this.resolve(key)
+    }
 
     for (const operator in this.operations) {
       const parts = this.splitOutsideParens(key, operator)
@@ -115,7 +120,7 @@ export class Lexicon {
         if (operator === '|')
           return parts
         return parts
-          .map(part => this.lookup(raw, part))
+          .map(part => this.lookup(part))
           .reduce(this.operations[operator])
       }
     }
@@ -126,7 +131,7 @@ export class Lexicon {
     if (this.dictionary[key])
       return Array.from(this.dictionary[key])
 
-    return [raw]
+    return [key]
   }
 
   private splitOutsideParens(expr: string, operator: string): string[] {
