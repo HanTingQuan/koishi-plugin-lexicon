@@ -180,10 +180,12 @@ export function apply(ctx: Context, config: Config) {
       if (!message) {
         return '请提供要输出的消息。'
       }
-      return h('markdown', [
-        Lexicon.resolve(message),
-        options?.tips && `> 👉 ${shortcut.input(`填字 ${message}`, '再来一次')}`,
-      ].filter(Boolean).join('\n'))
+      return options?.tips
+        ? h('markdown', [
+            Lexicon.resolve(message),
+            `> 👉 ${shortcut.input(`填字 ${message}`, '再来一次')}`,
+          ].filter(Boolean).join('\n'))
+        : Lexicon.resolve(message)
     })
 
   ctx.command('chars <message:text>', { hidden: true })
