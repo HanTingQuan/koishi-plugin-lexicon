@@ -42,6 +42,7 @@ export class Lexicon {
   }
 
   resolve(string: string): string {
+    string = string.replace(/&amp;/g, '&')
     const result = this._resolve(string)
     string !== result && this.logger?.info('resolve', string, result)
     return result
@@ -139,7 +140,7 @@ export class Lexicon {
       const parts = this.splitOutsideParens(key, operator)
       if (parts.length > 1) {
         return parts
-          .map(part => this.lookup(part))
+          .map(part => this.lookupRecursive(part))
           .reduce(this.operations[operator])
       }
     }

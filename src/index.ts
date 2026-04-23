@@ -31,7 +31,7 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.command('lkup [key:string]', '查询字典。')
     .alias('lookup', '查询')
-    .option('recursive', '-r 展开所有别名。')
+    .option('no-recursive', '-R 不展开所有别名。')
     .option('separator', '-s <sep:string> 分隔符。')
     .example('`lkup` 查询所有字典目录。')
     .example('`lkup <key>` 查询key的字典。')
@@ -45,11 +45,36 @@ export function apply(ctx: Context, config: Config) {
           .join(options?.separator || config.separator))
       }
 
-      const lookup = options?.recursive
+      const lookup = !options?.['no-recursive']
         ? Lexicon.lookupRecursive.bind(Lexicon)
         : Lexicon.lookup.bind(Lexicon)
       return lookup(key).join(options?.separator || config.separator)
         || `没有符合%(${key})的字典值。`
+    })
+
+  ctx.command('alias [src:string] [dest:string]', '管理字典别名。')
+    .alias('别名')
+    .option('long', '-l 显示详细格式。')
+    .option('separator', '-s <sep:string> 分隔符。')
+    .example('`alias` 查询所有别名。')
+    .example('`alias <src>` 查询src的别名。')
+    .example('`alias <src> <dest>` 设置src的别名。')
+    .action(({ options }, src, dest) => {
+      if (src && dest) {
+        if (!dest.includes('%'))
+          dest = `%(${dest})`
+        config.aliases[src] = dest
+        ctx.scope.update(config)
+        return `设置成功：${src} → ${dest}`
+      }
+      if (src)
+        return config.aliases[src] || `未知别名：${src}`
+      return options?.long
+        ? Object.entries(config.aliases)
+            .map(([key, value]) => `${key} → ${value}`)
+            .join('\n')
+        : Object.keys(config.aliases)
+            .join(options?.separator || config.separator)
     })
     .subcommand('.remove [...src:string]', '移除别名。')
     .alias('.rm', '移除别名', '删除别名')
