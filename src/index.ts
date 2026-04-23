@@ -49,6 +49,7 @@ export function apply(ctx: Context, config: Config) {
         ? Lexicon.lookupRecursive.bind(Lexicon)
         : Lexicon.lookup.bind(Lexicon)
       return lookup(key).join(options?.separator || config.separator)
+        || `没有符合%(${key})的字典值。`
     })
     .subcommand('.remove [...src:string]', '移除别名。')
     .alias('.rm', '移除别名', '删除别名')
