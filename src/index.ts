@@ -18,7 +18,7 @@ export const Config: Schema<Config> = Schema.object({
   separator: Schema.string().default(' ').description('输出分隔符。'),
   customs: Schema.dict(Schema.array(Schema.string())).description('自定义字典。'),
   aliases: Schema.dict(Schema.string()).description('字典别名。'),
-  debugging: Schema.boolean().default(false).description('是否开启调试模式。'),
+  debugging: Schema.boolean().default(false).description('开启调试模式。'),
 })
 
 export function apply(ctx: Context, config: Config) {
@@ -216,17 +216,6 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.command('chars <message:text>', { hidden: true })
     .action((_, message) => `(${Array.from(new Set(message.replaceAll(/\s+/g, ''))).join('|')})`)
-
-  ctx.command('grep <needle:string> <haystack:text>', { hidden: true })
-    .option('separator', '-s <sep:string> 分隔符。')
-    .action(({ options }, needle, haystack) => {
-      const sep = options?.separator || config.separator
-      const regex = new RegExp(needle, 'g')
-      return h('markdown', haystack.split(sep)
-        .filter(item => item.match(regex)).join(sep)
-        .replaceAll(regex, match => `**${match}**`)
-        .replaceAll('****', ''))
-    })
 
   ctx.middleware((session, next) => {
     return session.content
